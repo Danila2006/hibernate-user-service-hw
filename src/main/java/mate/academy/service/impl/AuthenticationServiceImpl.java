@@ -2,7 +2,6 @@ package mate.academy.service.impl;
 
 import java.util.Optional;
 import mate.academy.exception.AuthenticationException;
-import mate.academy.exception.DataProcessingException;
 import mate.academy.exception.RegistrationException;
 import mate.academy.model.User;
 import mate.academy.service.AuthenticationService;
@@ -17,61 +16,34 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public User login(String email, String password) {
-        Optional<User> existingUser = userService.findByEmail(email);
-        try {
-            isUserEmpty(existingUser);
-        } catch (AuthenticationException e) {
-            throw new DataProcessingException("User with email: " + email + " not found", e);
+    public User login(String email, String password) throws AuthenticationException {
+        Optional<User> optionalUser = userService.findByEmail(email);
+
+        if (optionalUser.isEmpty()) {
+            throw new AuthenticationException("User with email: " + email + " not found");
         }
 
-        String hash = PasswordUtil.hashPassword(password, existingUser.get().getSalt());
+        String hash = PasswordUtil.hashPassword(password, optionalUser.get().getSalt());
 
-        try {
-            isValidPassword(hash, existingUser.get().getPassword());
-        } catch (AuthenticationException e) {
-            throw new DataProcessingException("Incorrect password: " + password, e);
+        if (!hash.equals(optionalUser.get().getPassword())) {
+            throw new AuthenticationException("Incorrect password: " + password);
         }
 
-        return existingUser.get();
+        return optionalUser.get();
     }
 
     @Override
-    public User register(String email, String password) {
-        Optional<User> existingUser = userService.findByEmail(email);
-        try {
-            isUserPresent(existingUser);
-        } catch (RegistrationException e) {
-            throw new DataProcessingException("User with email: " + email + " already exist", e);
+    public User register(String email, String password) throws RegistrationException {
+        Optional<User> optionalUser = userService.findByEmail(email);
+
+        if (optionalUser.isPresent()) {
+            throw new RegistrationException("User with email: " + email + " already exist");
         }
-
-        byte[] salt = PasswordUtil.getSalt();
-
-        String hashedPassword = PasswordUtil.hashPassword(password, salt);
 
         User user = new User();
         user.setEmail(email);
-        user.setPassword(hashedPassword);
-        user.setSalt(salt);
+        user.setPassword(password);
 
         return userService.add(user);
-    }
-
-    public void isUserPresent(Optional<User> userOptional) throws RegistrationException {
-        if (userOptional.isPresent()) {
-            throw new RegistrationException("User is exist");
-        }
-    }
-
-    public void isUserEmpty(Optional<User> userOptional) throws AuthenticationException {
-        if (userOptional.isEmpty()) {
-            throw new AuthenticationException("User isn't exist");
-        }
-    }
-
-    public void isValidPassword(String hash, String userPassword) throws AuthenticationException {
-        if (!hash.equals(userPassword)) {
-            throw new AuthenticationException("Incorrect password");
-        }
     }
 }

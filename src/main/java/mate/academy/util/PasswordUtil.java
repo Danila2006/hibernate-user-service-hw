@@ -7,6 +7,9 @@ import java.security.SecureRandom;
 public class PasswordUtil {
     private static final String CRYPTO_ALGORITHM = "SHA-512";
 
+    private PasswordUtil() {
+    }
+
     public static byte[] getSalt() {
         SecureRandom secureRandom = new SecureRandom();
         byte[] salt = new byte[16];

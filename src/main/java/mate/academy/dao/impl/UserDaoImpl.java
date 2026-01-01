@@ -14,7 +14,7 @@ public class UserDaoImpl implements UserDao {
     public User add(User user) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            transaction = session.getTransaction();
+            transaction = session.beginTransaction();
             session.persist(user);
             transaction.commit();
             return user;
@@ -33,7 +33,7 @@ public class UserDaoImpl implements UserDao {
                     "FROM User us "
                             + "WHERE us.email = :email")
                     .setParameter("email", email);
-            return Optional.of(query.getSingleResult());
+            return query.uniqueResultOptional();
         } catch (Exception e) {
             throw new DataProcessingException("Can't find user by email " + email, e);
         }
